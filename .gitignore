@@ -1,0 +1,30 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.eggs/
+build/
+dist/
+
+# Virtual environments
+.venv/
+venv/
+env/
+
+# Tooling caches
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+
+# Environment / secrets
+.env
+
+# Generated eval assets and outputs
+data/eval/images/
+eval_results.md
+
+# Local model / HF caches
+.cache/
+
+# Local-only scratch / ad-hoc test scripts
+tmp/

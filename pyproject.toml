@@ -1,0 +1,16 @@
+[project]
+name = "multimodal-agent"
+version = "0.1.0"
+description = "A multimodal LLM agent that reasons over images and documentation."
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "MIT" }
+authors = [{ name = "Vicen-te" }]
+dependencies = []
+
+[tool.pytest.ini_options]
+pythonpath = ["."]
+testpaths = ["tests"]
+
+[tool.ruff]
+line-length = 100
