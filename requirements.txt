@@ -1,2 +1,6 @@
 # Config
 python-dotenv>=1.0
+
+# RAG
+numpy>=1.26
+rank-bm25>=0.2.2

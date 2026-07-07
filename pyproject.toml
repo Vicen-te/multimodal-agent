@@ -8,6 +8,8 @@ license = { text = "MIT" }
 authors = [{ name = "Vicen-te" }]
 dependencies = [
   "python-dotenv>=1.0",
+  "numpy>=1.26",
+  "rank-bm25>=0.2.2",
 ]
 
 [tool.pytest.ini_options]
