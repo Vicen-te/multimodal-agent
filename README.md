@@ -1,0 +1,168 @@
+# Multimodal Agent
+
+![CI](https://github.com/Vicen-te/multimodal-agent/actions/workflows/ci.yml/badge.svg)
+
+A multimodal LLM agent that reasons over **images** and **documentation**. Upload
+an image, ask a question, or both, and the agent decides whether to analyze the
+image, search the docs, or both, then reflects on its answer before sending it.
+
+> **Live demo:** deploy your own in minutes with the [Hugging Face Spaces](#deploy-to-hugging-face-spaces) steps below.
+
+It combines three areas in one system:
+
+- **LLM agents** — a [LangGraph](multimodal_agent/agent/graph.py) ReAct loop with a reflection step.
+- **Computer vision** — a [vision tool](multimodal_agent/providers/vision.py) backed by a local multimodal model (Ollama).
+- **RAG** — [hybrid retrieval](multimodal_agent/rag/retriever.py) (dense + BM25) fused with reciprocal rank fusion.
+
+## Architecture
+
+```
+            User (image + text)
+                    |
+            Gradio frontend (app.py)
+                    | stream
+            LangGraph agent  <-----------------+
+                    |                           |
+        +-----------+-----------+               |
+        |                       |               |
+   Vision tool             RAG tool             |
+   (Ollama VL)        (hybrid + RRF)            |
+        |                       |               |
+        +-----------+-----------+               |
+                    |                           |
+                 Reflection node ---------------+
+              (critique -> revise or finish)
+```
+
+The agent's reasoning stays in **text**: the image is handed to a vision tool
+that returns a description, which flows back into the loop like any other tool
+result. This keeps the loop easy to debug and lets vision compose with document
+search.
+
+## How it works
+
+1. The user message (text and/or image) becomes the initial graph state. The
+   image is stored as base64 and never enters the text model's context directly.
+2. The **agent node** asks the text model (`qwen3.5`) what to do. It can call
+   `AnalyzeImage`, `SearchDocs`, both, or answer directly.
+3. The **tool node** executes the calls: `AnalyzeImage` runs the vision model on
+   the stored image; `SearchDocs` runs hybrid retrieval and returns citable
+   chunks.
+4. When the agent produces a final answer that relied on a tool, the
+   **reflection node** critiques it *against the tool outputs*. First a
+   deterministic check rejects any citation that was not actually retrieved (and
+   any search whose result went uncited) with no extra model call; then, if that
+   passes, the model reviews faithfulness against the retrieved sources and image
+   analysis. It either finishes or routes back for one grounded revision. Plain
+   conversational replies skip reflection.
+5. Tokens stream to the Gradio UI.
+
+## Run locally
+
+### Prerequisites
+
+- Python 3.10+
+- [Ollama](https://ollama.com) running locally with the models pulled:
+
+```bash
+ollama pull qwen3.5:4b      # text / routing / reflection model
+ollama pull qwen3-vl:8b     # vision model
+```
+
+> Model names are configurable (see `.env.example`). Any Ollama vision model
+> works, e.g. `llava` or `moondream`; set `VISION_MODEL` accordingly.
+
+### Install and launch
+
+```bash
+python -m venv .venv
+. .venv/Scripts/activate        # Windows
+# source .venv/bin/activate     # macOS / Linux
+pip install -r requirements.txt
+cp .env.example .env            # then edit if needed
+
+python app.py
+```
+
+The embedding model (`all-MiniLM-L6-v2`) downloads from Hugging Face on first
+run. The corpus is ingested in memory at startup, so the first launch takes a
+little longer.
+
+## Evaluation
+
+A small eval set lives in [data/eval/cases.jsonl](data/eval/cases.jsonl) covering
+vision-only, docs-only, both, and no-tool cases. It measures **tool routing
+accuracy** (did the agent pick the right tool?) and **answer quality**
+(LLM-as-judge against a rubric).
+
+```bash
+python data/eval/make_images.py             # generate the sample images
+python -m multimodal_agent.evals.run_evals  # run the agent over every case
+```
+
+Results are written to `eval_results.md` as a table with routing accuracy,
+average answer score, and reflection rate.
+
+## Testing
+
+The agent logic, RAG, and reflection loop are covered by offline unit tests that
+stub the models, so they run with no Ollama and no model downloads:
+
+```bash
+pip install -r requirements-dev.txt
+pytest
+```
+
+These same light dependencies run in CI on every push and pull request
+(see [.github/workflows/ci.yml](.github/workflows/ci.yml)).
+
+## Configuration
+
+All settings come from environment variables (see [.env.example](.env.example)):
+
+| Variable | Default | Purpose |
+|----------|---------|---------|
+| `OLLAMA_HOST` | `http://localhost:11434` | Ollama endpoint |
+| `TEXT_MODEL` | `qwen3.5:4b` | Routing / reflection / answer model |
+| `VISION_MODEL` | `qwen3-vl:8b` | Vision-language model |
+| `EMBED_MODEL` | `all-MiniLM-L6-v2` | Sentence-Transformers embedder |
+| `RAG_TOP_K` | `4` | Parent chunks returned per search |
+| `RRF_K` | `60` | Reciprocal rank fusion constant |
+| `ENABLE_REFLECTION` | `true` | Toggle the reflection node |
+| `MAX_REFLECTIONS` | `1` | Max revision loops |
+| `LANGFUSE_*` | empty | Optional tracing (auto-enabled when keys set) |
+
+## Deploy to Hugging Face Spaces
+
+1. Create a new Space, SDK **Gradio**, hardware **CPU** (free).
+2. Push this repository (the entry point is `app.py`).
+3. Spaces installs `requirements.txt` and serves the app.
+
+Note: Ollama is not available on the free CPU Space. For a hosted demo, point
+`OLLAMA_HOST` at a reachable Ollama endpoint, or swap the providers in
+[multimodal_agent/providers/](multimodal_agent/providers/) for a managed
+inference endpoint.
+
+## Project structure
+
+```
+multimodal_agent/
+  config.py            # settings from env
+  providers/           # ollama chat + vision, sentence-transformers embedder
+  rag/                 # chunking, hybrid store, RRF retriever, ingest, corpus
+  agent/               # state, tool schemas, prompts, graph, runner
+  evals/               # dataset, LLM judge, harness
+app.py                 # Gradio frontend (HF Spaces entry point)
+data/eval/             # eval cases + sample image generator
+tests/                 # offline unit tests (stubbed models)
+COMMITS.md             # the commit-by-commit build guide
+```
+
+## Stack
+
+LangGraph · Qwen3-VL / Qwen3.5 (Ollama) · Sentence-Transformers · rank-bm25 ·
+Gradio · Langfuse · Hugging Face Spaces
+
+## License
+
+MIT — see [LICENSE](LICENSE).
