@@ -1,0 +1,10 @@
+# Light dependencies to run the offline test suite.
+# These are a subset of requirements.txt and deliberately exclude the heavy
+# runtime stack (torch via sentence-transformers, gradio, ollama), so the tests
+# (which stub the models) install and run fast in CI.
+pytest>=8.0
+numpy>=1.26
+rank-bm25>=0.2.2
+python-dotenv>=1.0
+langchain-core>=0.3.0
+langgraph>=0.2.0
