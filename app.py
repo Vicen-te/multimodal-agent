@@ -34,7 +34,11 @@ def chat_fn(message, history):
 demo = gr.ChatInterface(
     fn=chat_fn,
     multimodal=True,
-    chatbot=gr.Chatbot(height=560, resizable=True),
+    # `fill_height` lets the app own the viewport height so only the chatbot
+    # scrolls; `elem_id` scopes the CSS below that caps message-image height (a
+    # tall image was the trigger for a second, nested scrollbar).
+    chatbot=gr.Chatbot(height=560, elem_id="chatbot"),
+    fill_height=True,
     editable=True,  # users can edit a past message to regenerate from that point
     title="Multimodal Agent",
     description=(
@@ -49,5 +53,16 @@ demo = gr.ChatInterface(
 )
 
 
+# The chatbot root (#chatbot) carries an inline `overflow: auto` on top of its
+# fixed 560px height, so it scrolls in addition to the inner `.bubble-wrap`
+# message list -> two scrollbars. Force the root to hide overflow (needs
+# `!important` to beat the inline style) so only the message list scrolls, and cap
+# message-image height so a tall photo does not blow up the bubble. Gradio 6 takes
+# app CSS via launch().
+_CSS = """
+#chatbot { overflow: hidden !important; }
+#chatbot img { max-height: 320px; width: auto; }
+"""
+
 if __name__ == "__main__":
-    demo.launch()
+    demo.launch(css=_CSS)
