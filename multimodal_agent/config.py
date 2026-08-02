@@ -32,9 +32,19 @@ def _get_int(name: str, default: int) -> int:
 class Settings:
     """Immutable settings snapshot for a process."""
 
+    # Backend for the chat and vision models: "ollama" (local) or "gemini"
+    # (hosted Google API, used where a local Ollama is unavailable, e.g. a Space).
+    llm_provider: str = "ollama"
+
     ollama_host: str = "http://localhost:11434"
     text_model: str = "qwen3.5:4b"
     vision_model: str = "qwen3-vl:8b"
+
+    # Google Gemini (used when llm_provider == "gemini"); key from aistudio.google.com.
+    google_api_key: str = ""
+    gemini_text_model: str = "gemini-3.6-flash"
+    gemini_vision_model: str = "gemini-3.6-flash"
+
     embed_model: str = "all-MiniLM-L6-v2"
     rag_top_k: int = 4
     rrf_k: int = 60
@@ -51,9 +61,13 @@ class Settings:
     @classmethod
     def from_env(cls) -> "Settings":
         return cls(
+            llm_provider=os.getenv("LLM_PROVIDER", cls.llm_provider),
             ollama_host=os.getenv("OLLAMA_HOST", cls.ollama_host),
             text_model=os.getenv("TEXT_MODEL", cls.text_model),
             vision_model=os.getenv("VISION_MODEL", cls.vision_model),
+            google_api_key=os.getenv("GOOGLE_API_KEY", ""),
+            gemini_text_model=os.getenv("GEMINI_TEXT_MODEL", cls.gemini_text_model),
+            gemini_vision_model=os.getenv("GEMINI_VISION_MODEL", cls.gemini_vision_model),
             embed_model=os.getenv("EMBED_MODEL", cls.embed_model),
             rag_top_k=_get_int("RAG_TOP_K", cls.rag_top_k),
             rrf_k=_get_int("RRF_K", cls.rrf_k),

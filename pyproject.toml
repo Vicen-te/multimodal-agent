@@ -15,6 +15,7 @@ dependencies = [
   "ollama>=0.3.0",
   "langgraph>=0.2.0",
   "langchain-core>=0.3.0",
+  "langchain-google-genai>=4.3",
   "langfuse>=3.0",
   "gradio>=6,<7",
   "pillow>=10.0",

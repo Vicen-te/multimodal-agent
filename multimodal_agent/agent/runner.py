@@ -8,6 +8,7 @@ from typing import Iterable, Iterator, Optional
 
 from langchain_core.messages import AIMessage, HumanMessage, SystemMessage
 
+from .._content import content_to_text
 from ..config import Settings, get_settings
 from ..providers.chat import build_chat_model
 from ..providers.embeddings import SentenceTransformerEmbedder
@@ -121,7 +122,7 @@ def run_agent(
     settings = settings or get_settings()
     state = _initial_state(question, encode_image(image), history)
     result = graph.invoke(state, config=_run_config(settings))
-    return result["messages"][-1].content
+    return content_to_text(result["messages"][-1].content)
 
 
 def run_agent_streaming(
@@ -140,7 +141,7 @@ def run_agent_streaming(
         state, config=_run_config(settings), stream_mode="messages"
     ):
         node = metadata.get("langgraph_node")
-        content = getattr(chunk, "content", "")
+        content = content_to_text(getattr(chunk, "content", ""))
         if node == "agent" and content:
             if not in_agent_burst:
                 # A fresh answer burst starts; drop any superseded draft.

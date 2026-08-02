@@ -8,6 +8,7 @@ import re
 from langchain_core.messages import AIMessage, HumanMessage, ToolMessage
 from langgraph.graph import END, START, StateGraph
 
+from .._content import content_to_text
 from ..rag.chunking import Chunk
 from .prompts import REFLECTION_PROMPT
 from .state import AgentState
@@ -162,7 +163,7 @@ def build_agent(
         return {"messages": results, "retrieved_ids": retrieved_ids}
 
     def reflect_node(state: AgentState) -> dict:
-        answer = state["messages"][-1].content
+        answer = content_to_text(state["messages"][-1].content)
         retrieved_ids = state.get("retrieved_ids", [])
         reflections = state.get("reflections", 0) + 1
 
@@ -183,7 +184,7 @@ def build_agent(
                 image_analysis=_image_analysis(vision_desc, bool(state.get("image"))),
             )
             verdict = chat_model.invoke([HumanMessage(content=prompt)])
-            sufficient, critique = _parse_reflection(verdict.content)
+            sufficient, critique = _parse_reflection(content_to_text(verdict.content))
             # A vague "insufficient" with no concrete fix is treated as sufficient:
             # revising on noise is how a weak reviewer makes an answer worse.
             if not sufficient and critique:

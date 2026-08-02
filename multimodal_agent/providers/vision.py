@@ -1,7 +1,11 @@
-"""Vision-language model backed by a local Ollama multimodal model."""
+"""Vision-language model: local Ollama VL model, or Google Gemini (multimodal)."""
 
 from __future__ import annotations
 
+import base64
+import binascii
+
+from .._content import content_to_text
 from ..config import Settings
 
 
@@ -34,5 +38,56 @@ class OllamaVisionModel:
         return message["content"] if isinstance(message, dict) else message.content
 
 
-def build_vision_model(settings: Settings) -> OllamaVisionModel:
+def _image_mime(image_base64: str) -> str:
+    """Sniff the image mime type from its leading bytes, defaulting to PNG."""
+    try:
+        header = base64.b64decode(image_base64[:32])
+    except (binascii.Error, ValueError):
+        return "image/png"
+    if header.startswith(b"\xff\xd8\xff"):
+        return "image/jpeg"
+    if header.startswith(b"GIF8"):
+        return "image/gif"
+    if header[:4] == b"RIFF" and header[8:12] == b"WEBP":
+        return "image/webp"
+    return "image/png"
+
+
+class GeminiVisionModel:
+    """Describe an image using a multimodal Google Gemini model."""
+
+    def __init__(self, model: str, api_key: str) -> None:
+        self.model = model
+        self._api_key = api_key
+        self._client = None
+
+    def _ensure_client(self):
+        if self._client is None:
+            from langchain_google_genai import ChatGoogleGenerativeAI
+
+            self._client = ChatGoogleGenerativeAI(
+                model=self.model, google_api_key=self._api_key, temperature=0
+            )
+        return self._client
+
+    def describe(self, image_base64: str, query: str) -> str:
+        """Run the multimodal model on a base64-encoded image with a query."""
+        from langchain_core.messages import HumanMessage
+
+        client = self._ensure_client()
+        prompt = query or "Describe this image in detail."
+        data_url = f"data:{_image_mime(image_base64)};base64,{image_base64}"
+        message = HumanMessage(
+            content=[
+                {"type": "text", "text": prompt},
+                {"type": "image_url", "image_url": data_url},
+            ]
+        )
+        return content_to_text(client.invoke([message]).content)
+
+
+def build_vision_model(settings: Settings):
+    """Return the vision backend selected by ``llm_provider``."""
+    if settings.llm_provider == "gemini":
+        return GeminiVisionModel(settings.gemini_vision_model, settings.google_api_key)
     return OllamaVisionModel(settings.vision_model, settings.ollama_host)
