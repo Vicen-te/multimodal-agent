@@ -91,9 +91,16 @@ little longer.
 ## Evaluation
 
 A small eval set lives in [data/eval/cases.jsonl](data/eval/cases.jsonl) covering
-vision-only, docs-only, both, and no-tool cases. It measures **tool routing
-accuracy** (did the agent pick the right tool?) and **answer quality**
-(LLM-as-judge against a rubric).
+vision-only, docs-only, both, and no-tool cases, plus adversarial ones where the
+right answer is to refuse: a question the corpus does not cover, an image that
+was never attached, and a detail that is absent from the picture. A set where
+every case is answerable cannot tell a grounded agent from a confident one. It
+measures **tool routing
+accuracy** (did the agent pick the right tool?), **exact routing** (did it also
+avoid calling tools it did not need?), **answer quality** (LLM-as-judge against a
+rubric), and **citation integrity** (does every cited id come from a document the
+run actually retrieved?). Quality and citations move independently: a rubric
+rewards content, and an answer can be correct while citing nothing.
 
 ```bash
 python data/eval/make_images.py             # generate the sample images
@@ -101,7 +108,49 @@ python -m multimodal_agent.evals.run_evals  # run the agent over every case
 ```
 
 Results are written to `eval_results.md` as a table with routing accuracy,
-average answer score, and reflection rate.
+average answer score, and reflection rate. Two flags open up the run:
+
+```bash
+python -m multimodal_agent.evals.run_evals --detailed  # every answer in full
+python -m multimodal_agent.evals.run_evals --compare   # what reflection changed
+```
+
+`--detailed` adds each answer with the sources it retrieved, the critique that
+triggered any revision, and the judge's verdict. `--compare` also grades the
+draft the agent wrote *before* reflection — reflection only runs after an answer
+exists, so that draft is what the run would have returned with the node off, and
+scoring both sides measures the node instead of assuming it helps.
+
+### Results
+
+Over the 20 cases, with `qwen3.5:4b` and `qwen3-vl:8b` on Ollama and reflection
+enabled:
+
+| Metric | Result |
+|--------|--------|
+| Cases | 20 (6 docs, 6 image, 3 both, 2 no-tool, 3 adversarial) |
+| Routing accuracy | 95% |
+| Exact routing (no extra tools) | 90% |
+| Average answer score | 5.00 / 5 |
+| Citation integrity | 20/20 clean, from 17/20 before reflection |
+| Answers reviewed / rewritten | 90% / 15% |
+
+The three adversarial cases are the ones worth reading. Asked how many people are
+in a bar chart, the agent answers that there are none rather than inventing them.
+Asked about LoRA, which the corpus does not cover, its first draft wandered and
+never said so; the citation check forced a revision and the rewrite states
+plainly that no retrieved source mentions LoRA, which is the whole difference
+between a grounded agent and a confident one. The third is a genuine failure: an
+image the user says they attached but did not, where the agent calls the vision
+tool anyway on the strength of the claim, then recovers and answers correctly.
+
+That failure is why routing is also measured exactly, and the run shows the same
+pattern elsewhere -- a docs question that picked up a spare vision call. The
+reflection node's other contribution is citations: three answers used a search
+without citing it, and rewriting them took citation integrity from 17/20 to
+20/20. Every one of those rewrites came from the deterministic citation check,
+which costs no model call; the LLM reviewer read the remaining drafts and asked
+for no revision at all.
 
 ## Testing
 
