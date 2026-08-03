@@ -107,7 +107,7 @@ def render_details(rows: list[dict]) -> str:
     blocks = []
     for row in rows:
         parts = [
-            f"### `{row['id']}`\n",
+            f"### `{row['id']}`" + (" -- negative control" if row.get("control") else "") + "\n",
             f"**Question:** {row['question']}",
             f"**Image:** {row['image'] or 'none'}",
             f"**Rubric:** {row['rubric']}\n",
@@ -155,6 +155,16 @@ def summarise(rows: list[dict]) -> str:
 def citation_state(defects: list[str]) -> str:
     """Render a citation check as a short cell."""
     return "ok" if not defects else f"{len(defects)} bad"
+
+
+def control_failed(row: dict) -> bool:
+    """Whether a negative control failed, which is exactly what a control must do."""
+    return row["score"] <= 2 or not row["route_ok"]
+
+
+def summarise_controls(rows: list[dict]) -> str:
+    failed = sum(1 for r in rows if control_failed(r))
+    return f"\n**Controls failing as designed:** {failed}/{len(rows)}\n"
 
 
 def render_comparison(rows: list[dict]) -> str:
@@ -243,6 +253,7 @@ def evaluate_case(graph, judge_model, case: EvalCase, *, judge_draft: bool = Fal
         "retrieved": retrieved,
         "revisions": revision_requests(messages),
         "reflections": result.get("reflections", 0),
+        "control": case.control,
     }
 
 
@@ -265,12 +276,23 @@ def build_report(
         settings = replace(settings, enable_reflection=True)
 
     rows = run_suite(settings, cases, judge_draft=compare)
+    graded = [row for row in rows if not row["control"]]
+    controls = [row for row in rows if row["control"]]
 
-    sections = ["# Eval results\n", render_table(rows), summarise(rows)]
+    sections = ["# Eval results\n", render_table(graded), summarise(graded)]
+    if controls:
+        sections.append("\n## Negative controls\n")
+        sections.append(
+            "These cases are impossible by design -- a withheld image, a premise "
+            "the corpus cannot support -- so failing them is the correct outcome; "
+            "a control that passes flags a rubric or a judge gone soft.\n"
+        )
+        sections.append(render_table(controls))
+        sections.append(summarise_controls(controls))
     if compare:
         sections.append("\n## Before and after reflection\n")
-        sections.append(render_comparison(rows))
-        sections.append(summarise_reflection(rows))
+        sections.append(render_comparison(graded))
+        sections.append(summarise_reflection(graded))
     if detailed:
         sections.append("\n## Case details\n")
         sections.append(render_details(rows))

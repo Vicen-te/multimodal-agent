@@ -19,6 +19,7 @@ class EvalCase:
     image: Optional[str]
     expected_tool: str  # AnalyzeImage | SearchDocs | both | none
     rubric: str
+    control: bool = False  # designed-to-fail case, reported outside the headline metrics
 
 
 def load_cases(path: Path = CASES_PATH) -> list[EvalCase]:
@@ -37,6 +38,7 @@ def load_cases(path: Path = CASES_PATH) -> list[EvalCase]:
                 image=image_path,
                 expected_tool=raw["expected_tool"],
                 rubric=raw["rubric"],
+                control=bool(raw.get("control", False)),
             )
         )
     return cases

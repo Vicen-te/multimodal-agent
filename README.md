@@ -94,7 +94,11 @@ A small eval set lives in [data/eval/cases.jsonl](data/eval/cases.jsonl) coverin
 vision-only, docs-only, both, and no-tool cases, plus adversarial ones where the
 right answer is to refuse: a question the corpus does not cover, an image that
 was never attached, and a detail that is absent from the picture. A set where
-every case is answerable cannot tell a grounded agent from a confident one. It
+every case is answerable cannot tell a grounded agent from a confident one. Two
+negative controls go further: they are impossible by design -- a house drawing
+whose image is deliberately withheld, a deployment guide the corpus does not
+contain -- and are reported outside the headline metrics, where failing is the
+correct outcome and a passing control would flag a lenient judge. It
 measures **tool routing
 accuracy** (did the agent pick the right tool?), **exact routing** (did it also
 avoid calling tools it did not need?), **answer quality** (LLM-as-judge against a
