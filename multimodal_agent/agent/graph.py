@@ -14,7 +14,7 @@ from .prompts import REFLECTION_PROMPT
 from .state import AgentState
 from .tools import TOOLS, AnalyzeImage, SearchDocs
 
-_REVISION_PREFIX = "Revise your previous answer."
+REVISION_PREFIX = "Revise your previous answer."
 
 # A citation is a bracketed source slug like [langgraph] or [hybrid-search]. It
 # must start with a letter so list indices or code like [0] are never mistaken
@@ -46,7 +46,7 @@ def _last_question(messages: list) -> str:
     """Return the most recent genuine user question, skipping revision prompts."""
     for message in reversed(messages):
         if isinstance(message, HumanMessage) and not message.content.startswith(
-            _REVISION_PREFIX
+            REVISION_PREFIX
         ):
             return message.content
     return ""
@@ -199,7 +199,7 @@ def build_agent(
             "needs_revision": True,
             "messages": [
                 HumanMessage(
-                    content=f"{_REVISION_PREFIX} {critique_text}"
+                    content=f"{REVISION_PREFIX} {critique_text}"
                     f"{_revision_guidance(retrieved_ids)}"
                 )
             ],
