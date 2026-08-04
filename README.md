@@ -138,6 +138,7 @@ enabled:
 | Average answer score | 5.00 / 5 |
 | Citation integrity | 20/20 clean, from 17/20 before reflection |
 | Answers reviewed / rewritten | 90% / 15% |
+| Negative controls | 2/2 failing, as designed |
 
 The three adversarial cases are the ones worth reading. Asked how many people are
 in a bar chart, the agent answers that there are none rather than inventing them.
