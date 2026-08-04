@@ -1,3 +1,16 @@
+---
+title: Multimodal Agent
+emoji: 🤖
+colorFrom: indigo
+colorTo: gray
+sdk: gradio
+sdk_version: 6.22.0
+app_file: app.py
+pinned: false
+license: mit
+short_description: Multimodal agent over images and docs (RAG + vision)
+---
+
 # Multimodal Agent
 
 ![CI](https://github.com/Vicen-te/multimodal-agent/actions/workflows/ci.yml/badge.svg)

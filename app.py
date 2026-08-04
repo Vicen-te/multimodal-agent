@@ -64,5 +64,6 @@ _CSS = """
 #chatbot img { max-height: 320px; width: auto; }
 """
 
-if __name__ == "__main__":
-    demo.launch(css=_CSS)
+# Launched unguarded, matching the Spaces Gradio template: the app starts whether
+# the host runs this file as a script or imports it.
+demo.launch(css=_CSS)

@@ -21,7 +21,10 @@ class SentenceTransformerEmbedder:
         if self._model is None:
             from sentence_transformers import SentenceTransformer
 
-            self._model = SentenceTransformer(self.model_name)
+            # Pinned to CPU: the model is small enough that it never needs a GPU,
+            # and hosts like ZeroGPU Spaces only expose CUDA inside decorated
+            # functions, where a default "auto" device would fail at startup.
+            self._model = SentenceTransformer(self.model_name, device="cpu")
         return self._model
 
     def embed(self, texts: list[str]) -> np.ndarray:
