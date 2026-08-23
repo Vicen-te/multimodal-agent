@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import base64
 import io
+from functools import lru_cache
 from typing import Iterable, Iterator, Optional
 
 from langchain_core.messages import AIMessage, HumanMessage, SystemMessage
@@ -19,19 +20,26 @@ from .graph import build_agent
 from .prompts import SYSTEM_PROMPT
 
 
+@lru_cache(maxsize=1)
+def _corpus_retriever(embed_model: str, top_k: int, rrf_k: int) -> HybridRetriever:
+    """Embed and index the corpus once per process.
+
+    Retrieval does not depend on the chat or vision backend, so agents built
+    for different API keys can share the index instead of re-embedding the
+    corpus on every build.
+    """
+    embedder = SentenceTransformerEmbedder(embed_model)
+    store = build_store(embedder)
+    return HybridRetriever(store, embedder, top_k=top_k, rrf_k=rrf_k)
+
+
 def build_default_agent(settings: Optional[Settings] = None):
     """Wire real providers and the corpus into a compiled agent graph."""
     settings = settings or get_settings()
-    chat_model = build_chat_model(settings)
-    vision_model = build_vision_model(settings)
-    embedder = SentenceTransformerEmbedder(settings.embed_model)
-    store = build_store(embedder)
-    retriever = HybridRetriever(
-        store, embedder, top_k=settings.rag_top_k, rrf_k=settings.rrf_k
-    )
+    retriever = _corpus_retriever(settings.embed_model, settings.rag_top_k, settings.rrf_k)
     return build_agent(
-        chat_model,
-        vision_model,
+        build_chat_model(settings),
+        build_vision_model(settings),
         retriever,
         enable_reflection=settings.enable_reflection,
         max_reflections=settings.max_reflections,

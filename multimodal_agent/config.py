@@ -32,8 +32,9 @@ def _get_int(name: str, default: int) -> int:
 class Settings:
     """Immutable settings snapshot for a process."""
 
-    # Backend for the chat and vision models: "ollama" (local) or "gemini"
-    # (hosted Google API, used where a local Ollama is unavailable, e.g. a Space).
+    # Backend for the chat and vision models: "ollama" (local), "gemini" (hosted
+    # Google API), or "openai" (OpenAI or any provider exposing the same chat
+    # completions API: Groq, OpenRouter, Mistral, DeepSeek, xAI, Anthropic...).
     llm_provider: str = "ollama"
 
     ollama_host: str = "http://localhost:11434"
@@ -44,6 +45,12 @@ class Settings:
     google_api_key: str = ""
     gemini_text_model: str = "gemini-3.6-flash"
     gemini_vision_model: str = "gemini-3.6-flash"
+
+    # OpenAI-compatible API (used when llm_provider == "openai"); the base URL
+    # selects the provider and one model serves both text and vision.
+    openai_api_key: str = ""
+    openai_base_url: str = "https://api.openai.com/v1"
+    openai_model: str = "gpt-4o-mini"
 
     embed_model: str = "all-MiniLM-L6-v2"
     rag_top_k: int = 4
@@ -68,6 +75,9 @@ class Settings:
             google_api_key=os.getenv("GOOGLE_API_KEY", ""),
             gemini_text_model=os.getenv("GEMINI_TEXT_MODEL", cls.gemini_text_model),
             gemini_vision_model=os.getenv("GEMINI_VISION_MODEL", cls.gemini_vision_model),
+            openai_api_key=os.getenv("OPENAI_API_KEY", ""),
+            openai_base_url=os.getenv("OPENAI_BASE_URL", cls.openai_base_url),
+            openai_model=os.getenv("OPENAI_MODEL", cls.openai_model),
             embed_model=os.getenv("EMBED_MODEL", cls.embed_model),
             rag_top_k=_get_int("RAG_TOP_K", cls.rag_top_k),
             rrf_k=_get_int("RRF_K", cls.rrf_k),

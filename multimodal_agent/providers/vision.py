@@ -1,4 +1,4 @@
-"""Vision-language model: local Ollama VL model, or Google Gemini (multimodal)."""
+"""Vision-language model: local Ollama VL, Google Gemini, or an OpenAI-compatible API."""
 
 from __future__ import annotations
 
@@ -86,8 +86,46 @@ class GeminiVisionModel:
         return content_to_text(client.invoke([message]).content)
 
 
+class OpenAIVisionModel:
+    """Describe an image through a vision-capable model on an OpenAI-compatible API."""
+
+    def __init__(self, model: str, api_key: str, base_url: str) -> None:
+        self.model = model
+        self._api_key = api_key
+        self._base_url = base_url
+        self._client = None
+
+    def _ensure_client(self):
+        if self._client is None:
+            from langchain_openai import ChatOpenAI
+
+            self._client = ChatOpenAI(
+                model=self.model, api_key=self._api_key, base_url=self._base_url, temperature=0
+            )
+        return self._client
+
+    def describe(self, image_base64: str, query: str) -> str:
+        """Run the model on a base64-encoded image with a query."""
+        from langchain_core.messages import HumanMessage
+
+        client = self._ensure_client()
+        prompt = query or "Describe this image in detail."
+        data_url = f"data:{_image_mime(image_base64)};base64,{image_base64}"
+        message = HumanMessage(
+            content=[
+                {"type": "text", "text": prompt},
+                {"type": "image_url", "image_url": {"url": data_url}},
+            ]
+        )
+        return content_to_text(client.invoke([message]).content)
+
+
 def build_vision_model(settings: Settings):
     """Return the vision backend selected by ``llm_provider``."""
+    if settings.llm_provider == "openai":
+        return OpenAIVisionModel(
+            settings.openai_model, settings.openai_api_key, settings.openai_base_url
+        )
     if settings.llm_provider == "gemini":
         return GeminiVisionModel(settings.gemini_vision_model, settings.google_api_key)
     return OllamaVisionModel(settings.vision_model, settings.ollama_host)

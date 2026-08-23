@@ -12,6 +12,7 @@ ollama>=0.3.0
 langgraph>=0.2.0
 langchain-core>=0.3.0
 langchain-google-genai>=4.3
+langchain-openai>=1.0
 
 # Observability (optional)
 langfuse>=3.0
