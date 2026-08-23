@@ -189,9 +189,16 @@ All settings come from environment variables (see [.env.example](.env.example)):
 
 | Variable | Default | Purpose |
 |----------|---------|---------|
+| `LLM_PROVIDER` | `ollama` | Chat and vision backend: `ollama`, `gemini`, or `openai` (any OpenAI-compatible API) |
 | `OLLAMA_HOST` | `http://localhost:11434` | Ollama endpoint |
 | `TEXT_MODEL` | `qwen3.5:4b` | Routing / reflection / answer model |
 | `VISION_MODEL` | `qwen3-vl:8b` | Vision-language model |
+| `GOOGLE_API_KEY` | empty | Gemini key, free from aistudio.google.com |
+| `GEMINI_TEXT_MODEL` | `gemini-3.6-flash` | Gemini text model |
+| `GEMINI_VISION_MODEL` | `gemini-3.6-flash` | Gemini vision model |
+| `OPENAI_API_KEY` | empty | Key for the OpenAI-compatible backend |
+| `OPENAI_BASE_URL` | `https://api.openai.com/v1` | Endpoint that picks the provider (Groq, OpenRouter, Mistral...) |
+| `OPENAI_MODEL` | `gpt-4o-mini` | Model for text and vision on that backend |
 | `EMBED_MODEL` | `all-MiniLM-L6-v2` | Sentence-Transformers embedder |
 | `RAG_TOP_K` | `4` | Parent chunks returned per search |
 | `RRF_K` | `60` | Reciprocal rank fusion constant |
@@ -201,14 +208,19 @@ All settings come from environment variables (see [.env.example](.env.example)):
 
 ## Deploy to Hugging Face Spaces
 
-1. Create a new Space, SDK **Gradio**, hardware **CPU** (free).
+1. Create a new Space, SDK **Gradio** (the free tier works; no GPU needed).
 2. Push this repository (the entry point is `app.py`).
-3. Spaces installs `requirements.txt` and serves the app.
+3. In the Space settings add the secret `GOOGLE_API_KEY` and the variable
+   `LLM_PROVIDER=gemini`: Ollama is not available on a Space, so the hosted demo
+   runs on the Gemini backend instead.
+4. Spaces installs `requirements.txt` and serves the app.
 
-Note: Ollama is not available on the free CPU Space. For a hosted demo, point
-`OLLAMA_HOST` at a reachable Ollama endpoint, or swap the providers in
-[multimodal_agent/providers/](multimodal_agent/providers/) for a managed
-inference endpoint.
+Visitors can also bring their own key in the UI ("Use your own API key or
+model"): a Gemini key, or a key for any OpenAI-compatible provider (OpenAI,
+Groq, OpenRouter, Mistral, DeepSeek, xAI, Anthropic) picked by base URL, with
+the model of their choice. The key is used only for their requests and never
+stored, and since every Gemini model has its own free quota, switching model is
+another way to keep the demo working when one runs dry.
 
 ## Project structure
 
