@@ -4,6 +4,11 @@ from __future__ import annotations
 
 from dataclasses import replace
 
+try:  # present on Hugging Face ZeroGPU Spaces, absent locally
+    import spaces
+except ImportError:
+    spaces = None
+
 import gradio as gr
 
 from multimodal_agent.agent.runner import build_default_agent, run_agent_streaming
@@ -42,6 +47,18 @@ _MODEL_CHOICES = [
 ]
 
 _agent = None
+
+if spaces is not None:
+
+    @spaces.GPU
+    def _zerogpu_placeholder() -> None:
+        """ZeroGPU Spaces refuse to start without a @spaces.GPU function.
+
+        This app never needs the GPU (the chat and vision models are remote APIs
+        and the embedder runs on CPU), so nothing ever calls this; it exists only
+        so the Space passes the startup check.
+        """
+
 
 # Appended to every reply so it is always clear which backend, model, and key
 # answered; stripped from the history before it goes back to the model.
