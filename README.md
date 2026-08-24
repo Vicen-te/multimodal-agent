@@ -9,6 +9,14 @@ app_file: app.py
 pinned: false
 license: mit
 short_description: Multimodal agent over images and docs (RAG + vision)
+tags:
+  - llm-agent
+  - langgraph
+  - rag
+  - multimodal
+  - computer-vision
+  - ollama
+  - evaluation
 ---
 
 # Multimodal Agent
