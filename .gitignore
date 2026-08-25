@@ -19,9 +19,8 @@ env/
 # Environment / secrets
 .env
 
-# Generated eval assets and outputs
+# Generated eval assets (eval_results.md is committed on purpose: it is the artefact behind the README numbers)
 data/eval/images/
-eval_results.md
 
 # Local model / HF caches
 .cache/

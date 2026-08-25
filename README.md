@@ -161,6 +161,9 @@ enabled:
 | Answers reviewed / rewritten | 90% / 15% |
 | Negative controls | 2/2 failing, as designed |
 
+The full per-case output of that run (routes, tool calls, citation checks, scores before and
+after reflection, and every answer) is committed as [`eval_results.md`](eval_results.md).
+
 The three adversarial cases are the ones worth reading. Asked how many people are
 in a bar chart, the agent answers that there are none rather than inventing them.
 Asked about LoRA, which the corpus does not cover, its first draft wandered and
